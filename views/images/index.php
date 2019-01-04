@@ -64,7 +64,7 @@ $this->params['breadcrumbs'][] = $this->title;
 		$models = $dataProvider->getModels(); 
 		foreach($models as $key=>$value){ 
 			?> 
-			<img src="<?= Yii::$app->homeUrl  . $value->filename;?>" height='100' width='auto'>
+			<img src="<?= Yii::$app->homeUrl  . "uploads/"   . $value->filename;?>" height='100' width='auto'>
 			<?php 
 			if ($i % $imagesPerRow == 0) {
 				echo "<br>";
