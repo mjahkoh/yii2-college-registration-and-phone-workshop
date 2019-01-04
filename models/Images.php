@@ -7,7 +7,7 @@ use yii\web\UploadedFile;
 use app\helpers\Setup;
 
 /**
- * This is the model class for table "images". 
+ * This is the model class for table "images".  
  *
  * @property int $id
  * @property string $filename 
@@ -97,29 +97,44 @@ class Images extends \yii\db\ActiveRecord
 					array_map('unlink', glob($uploads . $this->id . '_*'));
 					//$description = $this->description;
 					foreach ($this->imageFiles as $file) {
-						$sourcefile = $file->name;
+						$sourcefile = Setup::trimString($file->name);
 						if ($this->isNewRecord) {
-							$sql = "insert into images(source_file)	values ('$sourcefile')";
-							Yii::$app->db->createCommand($sql)->execute();
+							//$sql = "insert into images(source_file)	values ('$sourcefile')";
+							//Yii::$app->db->createCommand($sql)->execute();
+							
+							// INSERT (table name, column values)
+							Yii::$app->db->createCommand()->insert('images', [
+								'source_file' => $sourcefile
+							])->execute();
 							$id = Yii::$app->db->getLastInsertID();	
 						} else {
 							$id = $this->id;
 						}
-						$filename = $id . '_' . $file->baseName . '.' . $file->extension;
-						$filelocation = $uploads . $id . '_' . $file->baseName . '.' . $file->extension; 
+						$baseName = Setup::trimString($file->baseName);
+						
+						$filename = $id . '_' . $baseName . '.' . $file->extension;
+						$filelocation = $uploads . $id . '_' . $baseName . '.' . $file->extension; 
 										
+						/*
 						$sql = "update images set
 							filename 			= '$filename',
 							source_file 		= '$sourcefile',
 							description 		= ' ". $this->description . "',
 							filelocation 		= '$filelocation'
 							where id = $id";
-						//echo "sql:: $sql<br>";	exit;	
 						Yii::$app->db->createCommand($sql)->execute();
+						*/
+						Yii::$app->db->createCommand()->update('images', [
+							'filename' => $filename, 
+							'source_file' => $sourcefile,
+							'description' => $this->description,
+							'filelocation' => $filelocation
+							], "id = $id")->execute();		
+								
 										
 						//echo $uploads . $id . '_' . $file->baseName . '.' . $file->extension."<br>";
 						//exit;
-						$file->saveAs($uploads  . $id . '_' . $file->baseName . '.' . $file->extension, false);
+						$file->saveAs($uploads  . $id . '_' . $baseName . '.' . $file->extension, false);
 						/* 
 						- Following only saves the filename of the last image if multiple uploads
 						- amend the below statament to suit your needs and save the multiple filename

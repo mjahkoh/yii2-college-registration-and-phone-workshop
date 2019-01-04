@@ -134,21 +134,34 @@ class Companies extends \yii\db\ActiveRecord
 			begin with the company name 
 			*/
 			$uploads = Yii::getAlias('@uploads'); // Alias root_dir/uploads
-			array_map('unlink', glob($uploads . '/' . $this->company_name . '_*'));
+			$companyname = Setup::trimString($this->company_name);
+			array_map('unlink', glob($uploads . '/' . $companyname . '_*'));
 			//delete from the database table companies_files
-			$sql = "delete from companies_files where company_id =" . $this->id;
-			Yii::$app->db->createCommand($sql)->execute();
+			//$sql = "delete from companies_files where company_id =" . $this->id;
+			//Yii::$app->db->createCommand($sql)->execute();
+			
+			// DELETE (table name, condition)
+			Yii::$app->db->createCommand()->delete('companies_files', "company_id = " . $this->id)->execute();
+			
 			foreach ($this->imageFiles as $file) {
-				$filename = "uploads/" . $this->company_name . '_' . $file->baseName . '.' . $file->extension;
+				$baseName = Setup::trimString($file->baseName);
+				$filename = "uploads/" . $companyname . '_' . $baseName . '.' . $file->extension;
 				/* 
 				- Following only saves the filename of the last image if multiple uploads
 				- amend the below statament to suit your needs and save the multiple filename
 				*/
-				$file->saveAs($uploads . '/' . $this->company_name . '_' . $file->baseName . '.' . $file->extension, false);
+				
+				$file->saveAs($uploads . '/' . $companyname . '_' . $baseName . '.' . $file->extension, false);
 				$this->logo = $filename;
-				$query[] = "insert into companies_files(filename, company_id) values ('$filename', " . $this->id .") ";
+				//$query[] = "insert into companies_files(filename, company_id) values ('$filename', " . $this->id .") ";
+				
+				// INSERT (table name, column values)
+				Yii::$app->db->createCommand()->insert('companies_files', [
+					'filename' => $filename,
+					'company_id' => $this->id
+				])->execute();
 			}
-			Setup::executeQuery($query);
+			
 		}	
 		
 		//verify the serial keys
@@ -198,7 +211,9 @@ class Companies extends \yii\db\ActiveRecord
 			// for multiple files, this file saved be last file 
 			if ($this->imageFiles) {
 				foreach ($this->imageFiles as $file) {
-					$logo = "uploads/" . $this->company_name . '_' . $file->baseName . '.' . $file->extension;
+					$baseName = Setup::trimString($file->baseName);
+					$companyname = Setup::trimString($this->company_name);
+					$logo = "uploads/" . $companyname . '_' . $baseName . '.' . $file->extension;
 					$this->logo = $logo ;
 				}
 			}
