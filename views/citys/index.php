@@ -74,7 +74,7 @@ $this->params['breadcrumbs'][] = $this->title;
 				'label'		=>'County',
 				'filter' => Html::activeDropDownList($searchModel, 'county_id', 
 				ArrayHelper::map(Countys::find()
-				->where(['=','state_id', count(Yii::$app->request->get()) ? Yii::$app->request->post('CitysSearch')['state'] : 0])
+				->where(['=','state_id', count(Yii::$app->request->get()) ? Yii::$app->request->get('CitysSearch')['state'] : 0])
 				->asArray()
 				->all(), 'id', 'county'),['class'=>'form-control','prompt' => 'Select County','multiple' => false,]),				
 				'value' => function ($model) {
@@ -91,6 +91,10 @@ $this->params['breadcrumbs'][] = $this->title;
 
             ['class' => 'yii\grid\ActionColumn'],
         ],
-    ]); ?>
+    ]); 
+	//echo 'kount::'. count(Yii::$app->request->get()) ? Yii::$app->request->post('CitysSearch')['state'] : 0;
+	echo  'count::' .count(Yii::$app->request->get());
+	print_r(Yii::$app->request->get('CitysSearch')['state']);
+	?>
 	
 <?php Pjax::end(); ?></div>

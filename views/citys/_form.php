@@ -7,9 +7,11 @@ use yii\helpers\ArrayHelper;
 use yii\helpers\Url ;
 use yii\widgets\Pjax;
 use yii\grid\GridView;
+use yii\data\ActiveDataProvider;
 
 use app\models\States;
 use app\models\Countys;
+use app\models\Citys;
 //use app\models\Citys;
 /* @var $this yii\web\View */
 /* @var $model app\models\Citys */
@@ -31,23 +33,23 @@ use app\models\Countys;
 		//populate states
 		
 		if (is_array( Yii::$app->request->post('Citys')) ) {
-			print_r(Yii::$app->request->post('Citys'));
+			//print_r(Yii::$app->request->post('Citys'));
 			$request = Yii::$app->request->post();
 			$selected_state = $request['Citys']['state'];
 			$selected_county = $request['Citys']['county_id'];
-			//echo "option A:: <BR>";
+			//echo "option Posted:: <BR>";
 		}  elseif ($model->isNewRecord) {
-			$selected_state = $state;
-			$selected_county = $county;
-			//echo "option D:: <BR>";
+			$selected_state = 0;
+			$selected_county = 0;
+			//echo "option New Record:: <BR>";
 		} else {	//update
-			$selected_state = $model->countys->state_id;
+			$selected_state =  $model->countys->state_id;
 			$selected_county = $model->county_id;
-			//echo "option C:: <BR>";
+			//echo "option Update:: <BR>";
 		}
 		/*
 		elseif (is_array( Yii::$app->request->get('Citys'))) {
-			print_r(Yii::$app->request->get());
+			//print_r(Yii::$app->request->get());
 			$request = Yii::$app->request->get('CitysSearch');
 			$selected_state = $request['state'];
 			$selected_county = $request['county_id'];
@@ -98,51 +100,32 @@ use app\models\Countys;
 		
 	?>
 
-		<div id="citys-gridview">
-		<?php
-			if (isset($dataProviderCitys)) {
-				echo GridView::widget([
-					'showOnEmpty'=> false,
-					'dataProvider' => $dataProviderCitys,
-					'columns' => [
-						//'id',
-					   [
-						   'label' =>"State",
-						   'attribute' => 'id',
-						   'value'=>function($model){
-							   return $model->countys->states->state_name;
-						   }
-					   ],	
-					   [
-						   'label' =>"County",
-						   'attribute' => 'id',
-						   'value'=>function($model){
-							   return $model->countys->county;
-						   }
-					   ],			
-						[
-							'attribute'	=>'city',
-						],
-			
-						['class' => 'yii\grid\ActionColumn'],
-					],
-				]); 		
-			}	
-			?>
-		</div>	
-
     <div class="form-group">
         <?= Html::submitButton($model->isNewRecord ? Yii::t('app', 'Create') : Yii::t('app', 'Update'), ['class' => $model->isNewRecord ? 'btn btn-success' : 'btn btn-primary']) ?>
     </div>
-
     <?php ActiveForm::end(); ?>
 	 <?php Pjax::end();  ?>
+	 
+	<div id="citys-details" style="display: none;">
+		<?php 
+			echo $this->render('_index', [
+				'model' => $citys,
+				'dataProvider' => $dataProvider,
+			]); 
+		?>
+	</div>	 
 	 
 </div>
 
 <?php
 /**/
 ////print_r($dataProvider);
+
+//start Section - for populating the gridview with the citys depending with preselected county
+$csrf_param = Yii::$app->request->csrfParam;  // #2
+$csrf_token = Yii::$app->request->csrfToken;
+//end  Section
+
 if ($selected_county == null) {
 	$selected_county = 0;
 } 
@@ -156,51 +139,93 @@ $this->registerJs(
 $(document). ready (function (){
 		
 		//we use jquery to select the options in the county  dropdowns
-		$('#citys-state').val($selected_state);
-		$('#citys-county_id').val($selected_county);
+		//$('#citys-state').val($selected_state);
+		//$('#citys-county_id').val($selected_county);
 		
 		//note the dynoDropdowns function is tucked in web/js/main.js
 		
 		var isNewRecord = $isNewRecord;
+		var csrf_param = '$csrf_param';
+		var csrf_token = '$csrf_token';
 					
-		
+		//on loading, if its update mode call ajax to populate the  grid
+		if (isNewRecord == 0) {
+			  var dataObj2 = {
+					'id':$('#citys-county_id').val(), 
+					'csrf_param':csrf_param, 
+					'csrf_token':csrf_token, 
+			  };
+	
+			  callAjaxToPopulateGrid(dataObj2);	
+			  console.log('isNewRecord = 0');
+		}
+
 		$('select').on('change', function(e){//, 'load',
 			
 			var host = '$host';
 			var formName = 'citys-form';
 			var county = '$county';
-			console.log('host:' + host);
-			console.log('select:' + this.id );
-			if(this.id === 'citys-state'){ 	//&& isNewRecord != 1
+			//console.log('host:' + host);
+			//console.log('select:' + this.id );
+			
+			//if user clicks the state dropdwn also clear the grid since  the towns have changed
+			if(this.id === 'citys-state'){ 	//
 				var dataObj = {'dropdown':this.id, 'formName':formName, 'id':this.value, 'host':host, 'nxtElemIndex':county};
 				dynoDropdowns(this, '#citys-county_id', dataObj);
+				
+				$('#citys-county_id').val('');	//reset the countys to [select County]
+				
+				//clear the gridview or delete the table rows or hide gridview div
+				$('#citys-details').hide();
+				
 			} 
 			
 			var selectedstate = $('#citys-state').val();
 			var selectedcounty = $('#citys-county_id').val();
-			console.log('selectedstate:' + selectedstate);
-			console.log('selectedcounty:' + selectedcounty);
-			if (selectedstate!= null && selectedcounty!= null){	//call pjax to populate the grid if both are fine
-				console.log('bothe cool:' );
-				
-			  var dataObj = {
-					'CitysSearch[state]':selectedstate, 
-					'CitysSearch[county_id]':selectedcounty, 
-			  };
-			  e.preventDefault();
-			  //CitysSearch[city]=&CitysSearch[city_ascii]=&CitysSearch[state]=2&CitysSearch[county_id]=1003
-			  $.pjax({
-				type: 'POST',
-				url			: '" . Url::toRoute(["citys/create"]). "',
-				container: '#citys-list-pjax',
-				data: dataObj,
-				dataType: 'application/json'
-			  })
-				
+			console.log('selectedstate' + selectedstate);
+			console.log('selectedcounty--' + selectedcounty);
+			
+			//var oList = document.getElementById('citys-county_id');
+			
+			//var sChosenItemValue = oList.options[oList.selectedIndex].value;
+			///console.log('sChosenItemValue--' + sChosenItemValue);
+			//console.log('selectedcounty:::' + citys-county_id.options[citys-county_id.selectedIndex].value);
+			
+			if (selectedstate!= null && selectedcounty!= null){	//call ajax to populate the grid if both are fine
+				console.log('selectedcounty:' + selectedcounty);
+				  var dataObj = {
+						'id':selectedcounty, 
+						'csrf_param':csrf_param, 
+						'csrf_token':csrf_token, 
+				  };
+				  e.preventDefault();	  	
+				  callAjaxToPopulateGrid(dataObj);	
+				  console.log('state2 = 0');
 			}
 			
 		});
 	
+	
+		function callAjaxToPopulateGrid(dataObject){
+			  
+			  $.ajax({
+					type: 'GET',
+					url			: '" . Url::toRoute(["citys/ajax-view"]). "',
+					data: dataObject,
+					dataType: 'html',
+					'success' : function(data){ // #5
+						$('#citys-details').html(data);
+						$('#citys-details').show();
+					}
+			  })
+			  .fail (function(xhr, status, errorThrown) {
+				alert('sorry problem heres');
+				console.log('Error: ' + errorThrown);
+				console.log('Status' + status);
+				console.dir(xhr);
+			  });
+				  
+		}
 		
 });
 

@@ -20,6 +20,8 @@ $this->params['breadcrumbs'][] = Yii::t('app', 'Update');
         'model'   => $model,
 		'state'   => $model->countys->state_id,
 		'county'  => $model->county_id,
+		'citys'   => $citys,
+		'dataProvider'  => $dataProvider,
     ]) ?>
 
 </div>

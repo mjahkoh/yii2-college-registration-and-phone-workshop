@@ -18,7 +18,8 @@ $this->params['breadcrumbs'][] = $this->title;
         'model' => $model,
 		'state'   => null,	//we are starting with a clean sheet with no preselected state or county
 		'county'  => null,
-		'dataProviderCitys'  => $dataProviderCitys,
+		'citys'  => $citys,
+		'dataProvider'  => $dataProvider,
     ]) ?>
 
 </div>
