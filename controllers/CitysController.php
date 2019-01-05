@@ -51,10 +51,12 @@ class CitysController extends Controller
     {
         $searchModel = new CitysSearch();
         $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+		
 
         return $this->render('index', [
             'searchModel' => $searchModel,
             'dataProvider' => $dataProvider,
+			//'citys' => $citys,
         ]);
     }
 
@@ -77,20 +79,21 @@ class CitysController extends Controller
      */
     public function actionCreate()
     {
-		if (Yii::$app->request->queryParams){
-			//print_r(Yii::$app->request->queryParams);
-			$searchModel = new CitysSearch();
-			$dataProvider = $searchModel->search(Yii::$app->request->queryParams);
-		}
-		
-        $model = new Citys();
+		$model = new Citys();
 		if ($model->load(Yii::$app->request->post()) && $model->save()) {
             return $this->redirect(['view', 'id' => $model->city_id]);
         } else {
-		    
+			/**/
+			$dataProvider = new ActiveDataProvider([
+				'query' => Citys::find(),
+				'pagination' => [
+					'pageSize' => 20,
+				],
+			]);			
 			return $this->render('create', [
                 'model' => $model,
-				'dataProviderCitys'  => isset($dataProvider) ? $dataProvider : NULL,
+				'citys' => $model,
+				'dataProvider' => $dataProvider,
             ]);
         }
     }
@@ -108,10 +111,23 @@ class CitysController extends Controller
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
             return $this->redirect(['view', 'id' => $model->city_id]);
         } else {
+			$citys = Citys::find()
+			->where(['=','county_id', $model->county_id])
+			->orderBy('city');			
+			
+			$dataProvider = new ActiveDataProvider([
+				'query' => Citys::find()->where(['=','county_id', $model->county_id])->orderBy('city'),
+				'pagination' => [
+					'pageSize' => 20,
+				],
+			]);	
+				
 			return $this->render('update', [
                 'model'   => $model,
 				'state'   => $model->countys->state_id,
 				'county'  => $model->county_id,
+				'citys' => $model,
+				'dataProvider' => $dataProvider,
             ]);
         }
     }
@@ -145,9 +161,10 @@ class CitysController extends Controller
         }
     }
 	
+	/*
     public function actionCityList()//$state, $county
     {
-		/*
+		
 		$dataProviderCitys = new ActiveDataProvider([
 			'query' => Citys::find()
 			->joinWith('countys', false, 'INNER JOIN')
@@ -165,7 +182,7 @@ class CitysController extends Controller
 			'county'  => $county,
 			'dataProviderCitys'  => $dataProviderCitys,
 		]);
-		*/
+		
         $searchModel = new CitysSearch();
         $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
 
@@ -175,5 +192,24 @@ class CitysController extends Controller
         ]);
 		//return  $dataProvider;
     }
+	*/
 	
+    /**
+     * Displays a single citys model as an ajax response.
+     * @param integer $id - countys
+     * @return mixed
+     */
+    public function actionAjaxView($id)
+    {
+		$dataProvider = new ActiveDataProvider([
+			'query' => Citys::find()->where(['=','county_id', $id])->orderBy('city'),
+			'pagination' => [
+				'pageSize' => 20,
+			],
+		]);			
+        return $this->renderPartial('_index', [
+			'model' => Citys::find()->where(['=','county_id', $id]),
+			'dataProvider' => $dataProvider,
+        ]);
+    }	
 }
